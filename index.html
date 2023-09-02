@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relativität</title>
+    <script src="plotly.min.js"></script>
+    <style>
+        *{
+            padding: 0;
+            margin: 0;
+            color: white;
+        }
+        body{
+            background-color: black;
+        }
+        #ufo{
+            width: 250px;
+            height: 200px;
+            top: 50vh;
+            left: 50vw;
+            transform: translate(-50%,-50%);
+            position: fixed;
+            cursor: pointer;
+            z-index: -2;
+        }
+        #background{
+            position: fixed;
+            left: 0;
+            top: 0;
+            visibility: hidden;
+            cursor: pointer;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <input type="range" id="speed" name="speed" min="0" max="1" step=".01"><label for="speed">Geschwindigkeit</label><br>
+    <input type="range" id="mass" name="mass" min="1" max="10" step=".1"><label for="mass">Masse</label>
+    <p>Zeitdilatation:<span id="time">1</span></p>
+    <p>Ruhemasse:<span id="restmass">1</span>kT</p>
+    <p>Kinetische Energie:<span id="energy">0</span>MJ</p>
+    <img id="ufo" src="ufo.png">
+    <canvas width="500" height="100vh" id="background"></canvas>
+    <div id="plot"></div>
+    <script defer>
+        let kmh1 = 1;
+        let restmass = 1;
+        let speed = 0;
+        let stars = [];
+        let toRemove = [];
+        let outside = true;
+        let show = false;
+        let startTime = new Date().getTime()/1000;
+        let x = [0];
+        let y = [0];
+        let space = 0;
+        let canvas = document.getElementById("background");
+        canvas.width = window.screen.width;
+        canvas.height = window.screen.height;
+        let ctx = canvas.getContext("2d");
+        ctx.fillStyle ="white";
+        ctx.opacity = .5;
+        document.getElementById("speed").value = speed;
+        document.getElementById("mass").value = restmass;
+        document.getElementById("speed").addEventListener("input",()=>{
+            update();
+            speed = document.getElementById("speed").value;
+            khm1 = Math.sqrt(1-Math.pow(speed,2));
+            document.getElementById("ufo").style.width = `${Math.round(250*khm1)}px`;
+            document.getElementById("time").innerHTML = 1/khm1;
+            energy();
+        });
+        document.getElementById("mass").addEventListener("input",()=>{
+            restmass = document.getElementById("mass").value;
+            document.getElementById("restmass").innerHTML = restmass;
+            energy();
+        });
+        function energy(){
+            let k = document.getElementById("time").innerHTML;
+            document.getElementById("energy").innerHTML = (k-1)*restmass;
+        }
+        class star{
+            x = canvas.width;
+            y = Math.random()*canvas.height;
+            display(){
+                ctx.fillStyle ="white";
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 10, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        function anim(){
+            for(let i = 0; i < speed*10;i++){
+                if(Math.random()<.1){
+                    stars.push(new star());
+                }
+            }
+            ctx.fillStyle ="black";
+            ctx.fillRect(0,0,window.screen.width,window.screen.height);
+            let i = 0;
+            while(i < stars.length){
+                stars[i].display()
+                stars[i].x-=speed*20;
+                if(stars[i].x<0){
+                    stars.splice(i,1);
+                }else{
+                    i++;
+                }
+            }
+            window.requestAnimationFrame(anim);
+        }
+        anim();
+        document.getElementById("ufo").addEventListener("click",()=>{
+            document.getElementById("background").style.visibility = "visible";
+            outside = false;
+        });
+        document.getElementById("background").addEventListener("click",()=>{
+            document.getElementById("background").style.visibility = "hidden";
+            outside = true;
+        });
+        document.body.addEventListener("keypress",(e)=>{
+            if(e.key=="c"){
+                outside = !outside;
+                document.getElementById("background").style.visibility = (outside)?"hidden":"visible";
+            }else if(e.key=="s"){
+                    document.getElementById("plot").style.visibility = "visible";
+                    plot();
+            }else if(e.key=="h"){
+                    document.getElementById("plot").style.visibility = "hidden";
+            }else if(e.key=="d"){
+                    downloadSVGAsText();
+            }
+        });
+        document.body.addEventListener("keydown",(e)=>{
+            if(e.key=="ArrowUp"&&document.getElementById("speed").value<1){
+                document.getElementById("speed").value+=.01;
+                update();
+                speed = document.getElementById("speed").value;
+            }else if(e.key=="ArrowDown"&&document.getElementById("speed").value>0){
+                document.getElementById("speed").value-=.01;
+            }
+            console.log(document.getElementById("speed").value);
+            update();
+            speed = document.getElementById("speed").value;
+        });
+        function plot(){
+            var trace2 = {
+            x: x,
+            y: y,
+            type: 'lines'
+            };
+
+            var data = [trace2];
+            var layout = {
+            title: 'Minkowsky-Raum',
+            xaxis: {
+                title: 'Zeit in Sekunden'
+            },
+            yaxis: {
+                title: 'Weg in Lichtsekunden'
+            }
+            };
+            Plotly.newPlot('plot', data,layout);
+        }
+        function update(){
+            x.push(new Date().getTime() / 1000-startTime);
+            space += (new Date().getTime() / 1000-x[x.length-2])*speed;
+            y.push(space);
+        }
+        function downloadSVGAsText() {
+            const svg = document.querySelector('svg');
+            const base64doc = btoa(unescape(encodeURIComponent(svg.outerHTML)));
+            const a = document.createElement('a');
+            const e = new MouseEvent('click');
+            a.download = 's(t)-Diagramm.svg';
+            a.href = 'data:image/svg+xml;base64,' + base64doc;
+            a.dispatchEvent(e);
+        }
+    </script>
+</body>
+</html>
